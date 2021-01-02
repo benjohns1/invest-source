@@ -1,0 +1,16 @@
+.DS_Store
+node_modules
+*.exe
+bin
+data
+coverage
+.secrets.yaml
+
+# Editor directories and files
+.idea
+.vscode
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
