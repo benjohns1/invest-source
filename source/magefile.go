@@ -37,7 +37,7 @@ func Build() error {
 func Start() error {
 	mg.Deps(Build)
 	binary := getBinaryForOS()
-	ran, err := sh.Exec(nil, os.Stdout, os.Stderr, binary)
+	ran, err := sh.Exec(nil, os.Stdout, os.Stderr, binary, "--since=2021-01-01")
 	if err != nil {
 		return err
 	}

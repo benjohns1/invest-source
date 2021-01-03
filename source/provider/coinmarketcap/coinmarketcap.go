@@ -79,27 +79,41 @@ func (p Provider) QueryLatest() ([]byte, error) {
 	return respBody, nil
 }
 
+type entry struct {
+	Data []security `json:"data"`
+}
+
+type security struct {
+	Symbol string `json:"symbol"`
+	Quote  struct {
+		USD struct {
+			Price       json.Number `json:"price"`
+			LastUpdated string      `json:"last_updated"`
+		} `json:"USD"`
+	} `json:"quote"`
+}
+
 // ParseLatestQuotes
-func (p Provider) ParseQuotes(data []byte) ([]app.Quote, error) {
+func (p Provider) ParseQuotes(data []byte, symbols ...string) ([]app.Quote, error) {
 	if data == nil {
 		return nil, fmt.Errorf("data cannot be empty")
 	}
-	v := struct {
-		Data []struct {
-			Symbol string `json:"symbol"`
-			Quote  struct {
-				USD struct {
-					Price       json.Number `json:"price"`
-					LastUpdated string      `json:"last_updated"`
-				} `json:"USD"`
-			} `json:"quote"`
-		} `json:"data"`
-	}{}
+	v := entry{}
 	if err := json.Unmarshal(data, &v); err != nil {
 		return nil, fmt.Errorf("error unmarshalling data into JSON: %v", err)
 	}
-	quotes := make([]app.Quote, len(v.Data))
-	for i, datum := range v.Data {
+	filterSymbols := len(symbols) > 0
+	symbolMap := make(map[string]struct{}, len(symbols))
+	for _, symbol := range symbols {
+		symbolMap[symbol] = struct{}{}
+	}
+	quotes := make([]app.Quote, 0)
+	for _, datum := range v.Data {
+		if filterSymbols {
+			if _, ok := symbolMap[datum.Symbol]; !ok {
+				continue
+			}
+		}
 		price, err := decimal.NewFromString(datum.Quote.USD.Price.String())
 		if err != nil {
 			return nil, fmt.Errorf("error parsing price for %s: %v", datum.Symbol, err)
@@ -108,11 +122,11 @@ func (p Provider) ParseQuotes(data []byte) ([]app.Quote, error) {
 		if err != nil {
 			return nil, fmt.Errorf("error parsing updated time for %s: %v", datum.Symbol, err)
 		}
-		quotes[i] = app.Quote{
+		quotes = append(quotes, app.Quote{
 			Time:   t,
 			Symbol: datum.Symbol,
 			USD:    price,
-		}
+		})
 	}
 	return quotes, nil
 }

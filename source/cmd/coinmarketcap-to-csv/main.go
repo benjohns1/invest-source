@@ -6,11 +6,11 @@ import (
 	"os"
 	"strings"
 
-	"github.com/benjohns1/invest-source/output/csv"
-
 	"github.com/benjohns1/invest-source/app"
 	"github.com/benjohns1/invest-source/cache/file"
+	"github.com/benjohns1/invest-source/output/csv"
 	"github.com/benjohns1/invest-source/provider/coinmarketcap"
+	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 )
 
@@ -19,11 +19,19 @@ type config struct {
 	CacheDirectory      string
 	OutputDirectory     string
 	OutputSymbols       []string
+	Since               string
 }
 
 func parseCfg() config {
+	pflag.String("since", "2021-01-01", "output quote data since this date")
+	pflag.Parse()
+	if err := viper.BindPFlags(pflag.CommandLine); err != nil {
+		log.Fatal(err)
+	}
+
 	viper.SetDefault("CacheDirectory", "./data/cache")
 	viper.SetDefault("OutputDirectory", "./data/out")
+	viper.SetDefault("Since", "2021-01-01")
 
 	readCfgFile("ConfigFile", "config.yaml")
 	readCfgFile("SecretConfigFile", ".secrets.yaml")
@@ -66,7 +74,7 @@ func main() {
 		log.Fatal(err)
 	}
 	log.Printf("symbols to output: %v\n", cfg.OutputSymbols)
-	o, err := csv.NewGnuCashCSV(cfg.OutputDirectory, cfg.OutputSymbols)
+	o, err := csv.NewGnuCashCSV(cfg.OutputDirectory)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -83,7 +91,7 @@ func main() {
 	}
 
 	log.Println("outputting daily quotes")
-	if err := a.OutputDailyQuotes(ctx); err != nil {
+	if err := a.OutputDailyQuotes(ctx, cfg.Since, cfg.OutputSymbols); err != nil {
 		log.Fatal(err)
 	}
 

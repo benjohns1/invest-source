@@ -38,8 +38,8 @@ func (mp *mockProvider) QueryLatest() ([]byte, error) {
 	return retB, args.Error(1)
 }
 
-func (mp *mockProvider) ParseQuotes(data []byte) ([]app.Quote, error) {
-	args := mp.Called(data)
+func (mp *mockProvider) ParseQuotes(data []byte, symbols ...string) ([]app.Quote, error) {
+	args := mp.Called(data, symbols)
 	retQ, _ := args.Get(0).([]app.Quote)
 	return retQ, args.Error(1)
 }
@@ -48,14 +48,8 @@ type mockOutput struct {
 	mock.Mock
 }
 
-func (mo *mockOutput) LastRun() time.Time {
-	args := mo.Called()
-	retT, _ := args.Get(0).(time.Time)
-	return retT
-}
-
-func (mo *mockOutput) WriteSet(quotes [][]app.Quote) (map[int][]string, error) {
-	args := mo.Called(quotes)
+func (mo *mockOutput) WriteSet(filename string, quotes [][]app.Quote, symbols ...string) (map[int][]string, error) {
+	args := mo.Called(filename, quotes, symbols)
 	retS, _ := args.Get(0).(map[int][]string)
 	return retS, args.Error(1)
 }

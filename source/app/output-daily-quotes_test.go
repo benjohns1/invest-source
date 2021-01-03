@@ -13,8 +13,14 @@ import (
 )
 
 func TestApp_OutputDailyQuotes(t *testing.T) {
+	app.Now = func() time.Time {
+		t, _ := time.Parse("2006-01-02", "2021-06-21")
+		return t
+	}
 	type args struct {
-		ctx context.Context
+		ctx     context.Context
+		since   string
+		symbols []string
 	}
 	tests := []struct {
 		name    string
@@ -31,11 +37,7 @@ func TestApp_OutputDailyQuotes(t *testing.T) {
 					return &c
 				}(),
 				Provider: &mockProvider{},
-				Output: func() app.Output {
-					o := mockOutput{}
-					o.On("LastRun").Return(time.Time{})
-					return &o
-				}(),
+				Output:   &mockOutput{},
 			},
 			wantErr: true,
 		},
@@ -49,13 +51,12 @@ func TestApp_OutputDailyQuotes(t *testing.T) {
 				}(),
 				Provider: func() app.Provider {
 					p := mockProvider{}
-					p.On("ParseQuotes", []byte("{}")).Return([]app.Quote{}, nil)
+					p.On("ParseQuotes", []byte("{}"), []string(nil)).Return([]app.Quote{}, nil)
 					return &p
 				}(),
 				Output: func() app.Output {
 					o := mockOutput{}
-					o.On("LastRun").Return(time.Time{})
-					o.On("WriteSet", [][]app.Quote{{}}).Return(nil, nil)
+					o.On("WriteSet", "0001-01-01_to_2021-06-21.csv", [][]app.Quote{{}}, []string(nil)).Return(nil, nil)
 					return &o
 				}(),
 			},
@@ -71,14 +72,10 @@ func TestApp_OutputDailyQuotes(t *testing.T) {
 				}(),
 				Provider: func() app.Provider {
 					p := mockProvider{}
-					p.On("ParseQuotes", []byte("{}")).Return(nil, fmt.Errorf("provider parsing error"))
+					p.On("ParseQuotes", []byte("{}"), []string(nil)).Return(nil, fmt.Errorf("provider parsing error"))
 					return &p
 				}(),
-				Output: func() app.Output {
-					o := mockOutput{}
-					o.On("LastRun").Return(time.Time{})
-					return &o
-				}(),
+				Output: &mockOutput{},
 			},
 			wantErr: true,
 		},
@@ -92,13 +89,12 @@ func TestApp_OutputDailyQuotes(t *testing.T) {
 				}(),
 				Provider: func() app.Provider {
 					p := mockProvider{}
-					p.On("ParseQuotes", []byte("{}")).Return([]app.Quote{}, nil)
+					p.On("ParseQuotes", []byte("{}"), []string(nil)).Return([]app.Quote{}, nil)
 					return &p
 				}(),
 				Output: func() app.Output {
 					o := mockOutput{}
-					o.On("LastRun").Return(time.Time{})
-					o.On("WriteSet", [][]app.Quote{{}}).Return(nil, fmt.Errorf("output writer error"))
+					o.On("WriteSet", "0001-01-01_to_2021-06-21.csv", [][]app.Quote{{}}, []string(nil)).Return(nil, fmt.Errorf("output writer error"))
 					return &o
 				}(),
 			},
@@ -113,7 +109,7 @@ func TestApp_OutputDailyQuotes(t *testing.T) {
 			if tt.app.Log == nil {
 				tt.app.Log = log.New(os.Stdout, "test: ", log.LstdFlags)
 			}
-			err := tt.app.OutputDailyQuotes(tt.args.ctx)
+			err := tt.app.OutputDailyQuotes(tt.args.ctx, tt.args.since, tt.args.symbols)
 			if tt.wantErr {
 				assert.Error(t, err)
 			} else {

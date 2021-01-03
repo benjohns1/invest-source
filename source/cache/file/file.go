@@ -13,7 +13,7 @@ type Cache struct {
 	Filename func(int) string
 }
 
-var oldestCacheDate = time.Date(2020, time.January, 1, 0, 0, 0, 0, time.UTC)
+var oldestCacheDate = time.Date(2021, time.January, 1, 0, 0, 0, 0, time.UTC)
 
 // NewDailyCache instantiates a daily cache.
 func NewDailyCache(dir string) (Cache, error) {
@@ -57,6 +57,7 @@ func (c Cache) ReadSince(since time.Time) ([][]byte, error) {
 	if since.Before(oldestCacheDate) {
 		since = oldestCacheDate
 	}
+	since = since.AddDate(0, 0, -1) // offset -1 day to be inclusive
 	curr := Now().UTC()
 	var set [][]byte
 	for i := 0; ; i-- {

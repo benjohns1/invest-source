@@ -31,7 +31,7 @@ type Cache interface {
 // Provider implements a source provider for retrieving external data.
 type Provider interface {
 	QueryLatest() ([]byte, error)
-	ParseQuotes(data []byte) ([]Quote, error)
+	ParseQuotes(data []byte, symbols ...string) ([]Quote, error)
 }
 
 // Log interface.
@@ -42,6 +42,5 @@ type Log interface {
 
 // Output implements an output writer.
 type Output interface {
-	LastRun() time.Time
-	WriteSet([][]Quote) (map[int][]string, error)
+	WriteSet(filename string, set [][]Quote, symbols ...string) (map[int][]string, error)
 }

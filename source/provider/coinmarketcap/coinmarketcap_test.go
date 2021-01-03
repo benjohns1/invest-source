@@ -13,7 +13,8 @@ import (
 
 func TestProvider_ParseQuotes(t *testing.T) {
 	type args struct {
-		data []byte
+		data    []byte
+		symbols []string
 	}
 	tests := []struct {
 		name     string
@@ -72,6 +73,26 @@ func TestProvider_ParseQuotes(t *testing.T) {
 			},
 		},
 		{
+			name: "should filter out data, if given a list of symbols",
+			args: args{
+				data: []byte(`{
+	"data": [
+		{
+			"symbol": "BTC",
+			"quote": {
+				"USD": {
+					"price": 123456789.123456789,
+					"last_updated": "2006-01-02T15:04:05.000Z"
+				}
+			}
+		}
+	]
+}`),
+				symbols: []string{"NOT-BTC"},
+			},
+			want: []app.Quote{},
+		},
+		{
 			name: "should fail if a symbol's price cannot be parsed",
 			args: args{
 				data: []byte(`{
@@ -119,7 +140,7 @@ func TestProvider_ParseQuotes(t *testing.T) {
 				}
 				tt.provider = &p
 			}
-			got, err := tt.provider.ParseQuotes(tt.args.data)
+			got, err := tt.provider.ParseQuotes(tt.args.data, tt.args.symbols...)
 			if tt.wantErr {
 				assert.Error(t, err)
 			} else {
