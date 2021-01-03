@@ -2,17 +2,18 @@ package main
 
 import (
 	"context"
+	"log"
+	"os"
+
 	"github.com/benjohns1/invest-source/app"
 	"github.com/benjohns1/invest-source/cache/file"
 	"github.com/benjohns1/invest-source/provider/coinmarketcap"
 	"github.com/spf13/viper"
-	"log"
-	"os"
 )
 
 type config struct {
 	CoinMarketCapApiKey string
-	CacheDirectory string
+	CacheDirectory      string
 }
 
 func parseCfg() config {
@@ -55,8 +56,8 @@ func main() {
 	}
 	a := app.App{
 		Provider: p,
-		Cache: c,
-		Log: log.New(os.Stdout, "app: ", log.LstdFlags),
+		Cache:    c,
+		Log:      log.New(os.Stdout, "app: ", log.LstdFlags),
 	}
 
 	log.Println("outputting daily source CSV")

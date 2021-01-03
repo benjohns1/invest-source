@@ -4,28 +4,30 @@ package main
 
 import (
 	"fmt"
-	"github.com/magefile/mage/mg"
-	"github.com/magefile/mage/sh"
 	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strings"
+
+	"github.com/magefile/mage/mg"
+	"github.com/magefile/mage/sh"
 )
 
 const (
-	binary = "bin/coinmarketcap-to-csv"
-	src = "cmd/coinmarketcap-to-csv/main.go"
-	coverDir = "coverage"
+	binary           = "bin/coinmarketcap-to-csv"
+	src              = "cmd/coinmarketcap-to-csv/main.go"
+	coverDir         = "coverage"
 	packagePrefixLen = len("github.com/benjohns1/invest-source/")
 )
 
+//goland:noinspection GoUnusedGlobalVariable
 var Default = Start
 
 // Build the app for the current OS runtime.
 func Build() error {
-	binary :=  getBinaryForOS()
+	binary := getBinaryForOS()
 	return sh.Run("go", "build", "-o", binary, src)
 }
 
@@ -45,6 +47,7 @@ func Start() error {
 }
 
 // Test all packages within the app, generate coverage, and optionally open HTML coverage in the default browser.
+//goland:noinspection GoUnusedExportedFunction
 func Test(openInBrowser bool) error {
 	if err := mkdir(coverDir); err != nil {
 		return err
@@ -65,7 +68,7 @@ func Test(openInBrowser bool) error {
 	}
 
 	if openInBrowser {
-		if err := openDefaultBrowser("file://"+absCoverHTML); err != nil {
+		if err := openDefaultBrowser("file://" + absCoverHTML); err != nil {
 			return err
 		}
 	}
@@ -88,6 +91,7 @@ func openDefaultBrowser(url string) error {
 }
 
 // List all Go packages in the app.
+//goland:noinspection GoUnusedExportedFunction
 func List() error {
 	pkgs, err := getPackages()
 	if err != nil {

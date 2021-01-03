@@ -5,20 +5,22 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
+
+	"github.com/benjohns1/invest-source/app"
 )
 
 // Provider CoinMarketCap crypto API provider.
 type Provider struct {
-	ApiKey string
-	Limit int
+	ApiKey  string
+	Limit   int
 	Convert string
 }
 
 // NewCoinMarketCapProvider creates a new provider for the Coin Market Cap API (https://coinmarketcap.com/).
 func NewCoinMarketCapProvider(apiKey string) (Provider, error) {
 	p := Provider{
-		ApiKey: apiKey,
-		Limit: 5000,
+		ApiKey:  apiKey,
+		Limit:   5000,
 		Convert: "USD",
 	}
 	if err := p.Validate(); err != nil {
@@ -43,7 +45,7 @@ func (p Provider) Validate() error {
 // QueryLatest retrieves the latest currency listing data from the CoinMarketCap API.
 func (p Provider) QueryLatest() ([]byte, error) {
 	client := &http.Client{}
-	req, err := http.NewRequest("GET","https://pro-api.coinmarketcap.com/v1/cryptocurrency/listings/latest", nil)
+	req, err := http.NewRequest("GET", "https://pro-api.coinmarketcap.com/v1/cryptocurrency/listings/latest", nil)
 	if err != nil {
 		return nil, err
 	}
@@ -71,4 +73,9 @@ func (p Provider) QueryLatest() ([]byte, error) {
 	}
 
 	return respBody, nil
+}
+
+// ParseLatestQuotes
+func (p Provider) ParseQuotes(_ []byte) ([]app.Quote, error) {
+	return nil, fmt.Errorf("not implemented")
 }
