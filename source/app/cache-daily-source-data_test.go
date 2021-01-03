@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestApp_OutputDailySourceCSV(t *testing.T) {
+func TestApp_CacheDailySourceData(t *testing.T) {
 	type args struct {
 		ctx context.Context
 	}
@@ -70,63 +70,35 @@ func TestApp_OutputDailySourceCSV(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "should succeed if cache ReadCurrent() returns data and ParseQuotes() parses data successfully",
+			name: "should succeed if cache ReadCurrent() returns data",
 			app: app.App{
 				Cache: func() app.Cache {
 					c := mockCache{}
 					c.On("ReadCurrent").Return([]byte("{}"), nil)
 					return &c
 				}(),
-				Provider: func() app.Provider {
-					p := mockProvider{}
-					p.On("ParseQuotes", []byte("{}")).Return([]app.Quote{}, nil)
-					return &p
-				}(),
-				Output: func() app.Output {
-					o := mockOutput{}
-					o.On("Write", []app.Quote{}).Return(nil, nil)
-					return &o
-				}(),
+				Provider: &mockProvider{},
+				Output:   &mockOutput{},
 			},
 			wantErr: false,
 		},
 		{
-			name: "should fail if provider ParseQuotes() returns an error",
+			name: "should succeed if provider QueryLatest() returns data and cache WriteCurrent() succeeds",
 			app: app.App{
 				Cache: func() app.Cache {
 					c := mockCache{}
-					c.On("ReadCurrent").Return([]byte("{}"), nil)
+					c.On("ReadCurrent").Return(nil, nil)
+					c.On("WriteCurrent", []byte("query data response")).Return(nil)
 					return &c
 				}(),
 				Provider: func() app.Provider {
 					p := mockProvider{}
-					p.On("ParseQuotes", []byte("{}")).Return(nil, fmt.Errorf("provider parsing error"))
+					p.On("QueryLatest").Return([]byte("query data response"), nil)
 					return &p
 				}(),
 				Output: &mockOutput{},
 			},
-			wantErr: true,
-		},
-		{
-			name: "should fail if output Write() returns an error",
-			app: app.App{
-				Cache: func() app.Cache {
-					c := mockCache{}
-					c.On("ReadCurrent").Return([]byte("{}"), nil)
-					return &c
-				}(),
-				Provider: func() app.Provider {
-					p := mockProvider{}
-					p.On("ParseQuotes", []byte("{}")).Return([]app.Quote{}, nil)
-					return &p
-				}(),
-				Output: func() app.Output {
-					o := mockOutput{}
-					o.On("Write", []app.Quote{}).Return(nil, fmt.Errorf("output writer error"))
-					return &o
-				}(),
-			},
-			wantErr: true,
+			wantErr: false,
 		},
 	}
 	for _, tt := range tests {
@@ -137,7 +109,7 @@ func TestApp_OutputDailySourceCSV(t *testing.T) {
 			if tt.app.Log == nil {
 				tt.app.Log = log.New(os.Stdout, "test: ", log.LstdFlags)
 			}
-			err := tt.app.OutputDailySourceCSV(tt.args.ctx)
+			err := tt.app.CacheDailySourceData(tt.args.ctx)
 			if tt.wantErr {
 				assert.Error(t, err)
 			} else {

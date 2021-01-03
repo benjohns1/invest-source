@@ -54,6 +54,8 @@ func main() {
 	log.Println("parsing config")
 	cfg := parseCfg()
 
+	ctx := context.Background()
+
 	log.Println("injecting dependencies")
 	c, err := file.NewDailyCache(cfg.CacheDirectory)
 	if err != nil {
@@ -75,8 +77,13 @@ func main() {
 		Log:      log.New(os.Stdout, "app: ", log.LstdFlags),
 	}
 
-	log.Println("outputting daily source CSV")
-	if err := a.OutputDailySourceCSV(context.Background()); err != nil {
+	log.Println("caching daily source data")
+	if err := a.CacheDailySourceData(ctx); err != nil {
+		log.Fatal(err)
+	}
+
+	log.Println("outputting daily quotes")
+	if err := a.OutputDailyQuotes(ctx); err != nil {
 		log.Fatal(err)
 	}
 
