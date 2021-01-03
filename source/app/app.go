@@ -10,6 +10,7 @@ import (
 type App struct {
 	Cache    Cache
 	Provider Provider
+	Output   Output
 	Log      Log
 }
 
@@ -36,4 +37,9 @@ type Provider interface {
 type Log interface {
 	Println(v ...interface{})
 	Printf(format string, v ...interface{})
+}
+
+// Output implements an output writer.
+type Output interface {
+	Write([]Quote) ([]string, error)
 }

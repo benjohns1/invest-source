@@ -30,6 +30,7 @@ func TestApp_OutputDailySourceCSV(t *testing.T) {
 					return &c
 				}(),
 				Provider: &mockProvider{},
+				Output:   &mockOutput{},
 			},
 			wantErr: true,
 		},
@@ -46,6 +47,7 @@ func TestApp_OutputDailySourceCSV(t *testing.T) {
 					p.On("QueryLatest").Return(nil, fmt.Errorf("provider query error"))
 					return &p
 				}(),
+				Output: &mockOutput{},
 			},
 			wantErr: true,
 		},
@@ -63,6 +65,7 @@ func TestApp_OutputDailySourceCSV(t *testing.T) {
 					p.On("QueryLatest").Return([]byte("query data response"), nil)
 					return &p
 				}(),
+				Output: &mockOutput{},
 			},
 			wantErr: true,
 		},
@@ -76,8 +79,13 @@ func TestApp_OutputDailySourceCSV(t *testing.T) {
 				}(),
 				Provider: func() app.Provider {
 					p := mockProvider{}
-					p.On("ParseQuotes", []byte("{}")).Return(nil, nil)
+					p.On("ParseQuotes", []byte("{}")).Return([]app.Quote{}, nil)
 					return &p
+				}(),
+				Output: func() app.Output {
+					o := mockOutput{}
+					o.On("Write", []app.Quote{}).Return(nil, nil)
+					return &o
 				}(),
 			},
 			wantErr: false,
@@ -94,6 +102,28 @@ func TestApp_OutputDailySourceCSV(t *testing.T) {
 					p := mockProvider{}
 					p.On("ParseQuotes", []byte("{}")).Return(nil, fmt.Errorf("provider parsing error"))
 					return &p
+				}(),
+				Output: &mockOutput{},
+			},
+			wantErr: true,
+		},
+		{
+			name: "should fail if output Write() returns an error",
+			app: app.App{
+				Cache: func() app.Cache {
+					c := mockCache{}
+					c.On("ReadCurrent").Return([]byte("{}"), nil)
+					return &c
+				}(),
+				Provider: func() app.Provider {
+					p := mockProvider{}
+					p.On("ParseQuotes", []byte("{}")).Return([]app.Quote{}, nil)
+					return &p
+				}(),
+				Output: func() app.Output {
+					o := mockOutput{}
+					o.On("Write", []app.Quote{}).Return(nil, fmt.Errorf("output writer error"))
+					return &o
 				}(),
 			},
 			wantErr: true,
@@ -118,6 +148,9 @@ func TestApp_OutputDailySourceCSV(t *testing.T) {
 			}
 			if p, ok := tt.app.Provider.(*mockProvider); ok {
 				p.AssertExpectations(t)
+			}
+			if o, ok := tt.app.Output.(*mockOutput); ok {
+				o.AssertExpectations(t)
 			}
 		})
 	}

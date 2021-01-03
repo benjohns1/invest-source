@@ -11,6 +11,8 @@ import (
 	"runtime"
 	"strings"
 
+	"github.com/benjohns1/invest-source/utils/filesystem"
+
 	"github.com/magefile/mage/mg"
 	"github.com/magefile/mage/sh"
 )
@@ -49,7 +51,7 @@ func Start() error {
 // Test all packages within the app, generate coverage, and optionally open HTML coverage in the default browser.
 //goland:noinspection GoUnusedExportedFunction
 func Test(openInBrowser bool) error {
-	if err := mkdir(coverDir); err != nil {
+	if err := filesystem.Mkdir(coverDir); err != nil {
 		return err
 	}
 	cover := fmt.Sprintf("%s/coverage.out", coverDir)
@@ -130,15 +132,4 @@ func getPackages() ([]pkg, error) {
 	}
 
 	return pkgs, nil
-}
-
-func mkdir(dir string) error {
-	if _, err := os.Stat(dir); os.IsNotExist(err) {
-		if err := os.MkdirAll(dir, os.ModePerm); err != nil {
-			return fmt.Errorf("error attempting to create dir '%s': %v", dir, err)
-		}
-	} else if err != nil {
-		return fmt.Errorf("error attempting to read dir '%s': %v", dir, err)
-	}
-	return nil
 }

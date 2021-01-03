@@ -29,12 +29,17 @@ func (a App) OutputDailySourceCSV(_ context.Context) error {
 
 	a.Log.Printf("retrieved %d bytes", len(data))
 
-	_, err = a.Provider.ParseQuotes(data)
+	quotes, err := a.Provider.ParseQuotes(data)
 	if err != nil {
 		return err
 	}
 
-	// TODO: store Coin entities in csv repo implementation (for importing into GnuCash)
+	a.Log.Printf("writing output")
 
-	return nil
+	missing, err := a.Output.Write(quotes)
+	if len(missing) > 0 {
+		a.Log.Printf("missing symbols from output: %v", missing)
+	}
+
+	return err
 }

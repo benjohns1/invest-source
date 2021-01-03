@@ -35,3 +35,13 @@ func (mp *mockProvider) ParseQuotes(data []byte) ([]app.Quote, error) {
 	retQ, _ := args.Get(0).([]app.Quote)
 	return retQ, args.Error(1)
 }
+
+type mockOutput struct {
+	mock.Mock
+}
+
+func (mo *mockOutput) Write(quotes []app.Quote) ([]string, error) {
+	args := mo.Called(quotes)
+	retS, _ := args.Get(0).([]string)
+	return retS, args.Error(1)
+}

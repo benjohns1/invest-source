@@ -4,6 +4,9 @@ import (
 	"context"
 	"log"
 	"os"
+	"strings"
+
+	"github.com/benjohns1/invest-source/output/csv"
 
 	"github.com/benjohns1/invest-source/app"
 	"github.com/benjohns1/invest-source/cache/file"
@@ -14,10 +17,13 @@ import (
 type config struct {
 	CoinMarketCapApiKey string
 	CacheDirectory      string
+	OutputDirectory     string
+	OutputSymbols       []string
 }
 
 func parseCfg() config {
-	viper.SetDefault("CacheDirectory", "./data")
+	viper.SetDefault("CacheDirectory", "./data/cache")
+	viper.SetDefault("OutputDirectory", "./data/out")
 
 	readCfgFile("ConfigFile", "config.yaml")
 	readCfgFile("SecretConfigFile", ".secrets.yaml")
@@ -25,6 +31,9 @@ func parseCfg() config {
 	cfg := config{}
 	if err := viper.Unmarshal(&cfg); err != nil {
 		log.Fatal(err)
+	}
+	for i, symbol := range cfg.OutputSymbols {
+		cfg.OutputSymbols[i] = strings.TrimSpace(symbol)
 	}
 
 	log.Printf("parsed configs: %#v", cfg)
@@ -54,9 +63,15 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	log.Printf("symbols to output: %v\n", cfg.OutputSymbols)
+	o, err := csv.NewGnuCashCSV(cfg.OutputDirectory, cfg.OutputSymbols)
+	if err != nil {
+		log.Fatal(err)
+	}
 	a := app.App{
 		Provider: p,
 		Cache:    c,
+		Output:   o,
 		Log:      log.New(os.Stdout, "app: ", log.LstdFlags),
 	}
 

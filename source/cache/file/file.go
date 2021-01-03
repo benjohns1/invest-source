@@ -6,6 +6,8 @@ import (
 	"os"
 	"strings"
 	"time"
+
+	"github.com/benjohns1/invest-source/utils/filesystem"
 )
 
 // Now function for retrieving the current timestamp. Override this for unit tests.
@@ -38,7 +40,7 @@ func (c Cache) Validate() error {
 
 // ReadCurrent retrieves the current day's cache file data, or nil if it doesn't exist.
 func (c Cache) ReadCurrent() ([]byte, error) {
-	f, err := os.OpenFile(c.CurrentFilename(), os.O_RDONLY, 0)
+	f, err := os.Open(c.CurrentFilename())
 	if err != nil {
 		if os.IsNotExist(err) {
 			return nil, nil
@@ -51,7 +53,7 @@ func (c Cache) ReadCurrent() ([]byte, error) {
 
 // Write writes the data to a daily cache.
 func (c Cache) WriteCurrent(data []byte) error {
-	f, err := os.OpenFile(c.CurrentFilename(), os.O_CREATE, 0755)
+	f, err := os.Create(c.CurrentFilename())
 	if err != nil {
 		return err
 	}
@@ -69,20 +71,9 @@ func CurrentFilenameGen(dir string) func() string {
 	if dirPath != "" && !strings.HasSuffix(dirPath, "/") {
 		dirPath = dirPath + "/"
 	}
-	_ = mkdir(dirPath)
+	_ = filesystem.Mkdir(dirPath)
 
 	return func() string {
 		return fmt.Sprintf("%s%s.json", dirPath, Now().UTC().Format("2006-01-02"))
 	}
-}
-
-func mkdir(dir string) error {
-	if _, err := os.Stat(dir); os.IsNotExist(err) {
-		if err := os.MkdirAll(dir, os.ModePerm); err != nil {
-			return fmt.Errorf("error attempting to create dir '%s': %v", dir, err)
-		}
-	} else if err != nil {
-		return fmt.Errorf("error attempting to read dir '%s': %v", dir, err)
-	}
-	return nil
 }

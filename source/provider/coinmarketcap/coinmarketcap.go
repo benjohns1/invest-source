@@ -1,10 +1,14 @@
 package coinmarketcap
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"time"
+
+	"github.com/shopspring/decimal"
 
 	"github.com/benjohns1/invest-source/app"
 )
@@ -76,6 +80,39 @@ func (p Provider) QueryLatest() ([]byte, error) {
 }
 
 // ParseLatestQuotes
-func (p Provider) ParseQuotes(_ []byte) ([]app.Quote, error) {
-	return nil, fmt.Errorf("not implemented")
+func (p Provider) ParseQuotes(data []byte) ([]app.Quote, error) {
+	if data == nil {
+		return nil, fmt.Errorf("data cannot be empty")
+	}
+	v := struct {
+		Data []struct {
+			Symbol string `json:"symbol"`
+			Quote  struct {
+				USD struct {
+					Price       json.Number `json:"price"`
+					LastUpdated string      `json:"last_updated"`
+				} `json:"USD"`
+			} `json:"quote"`
+		} `json:"data"`
+	}{}
+	if err := json.Unmarshal(data, &v); err != nil {
+		return nil, fmt.Errorf("error unmarshalling data into JSON: %v", err)
+	}
+	quotes := make([]app.Quote, len(v.Data))
+	for i, datum := range v.Data {
+		price, err := decimal.NewFromString(datum.Quote.USD.Price.String())
+		if err != nil {
+			return nil, fmt.Errorf("error parsing price for %s: %v", datum.Symbol, err)
+		}
+		t, err := time.Parse(time.RFC3339Nano, datum.Quote.USD.LastUpdated)
+		if err != nil {
+			return nil, fmt.Errorf("error parsing updated time for %s: %v", datum.Symbol, err)
+		}
+		quotes[i] = app.Quote{
+			Time:   t,
+			Symbol: datum.Symbol,
+			USD:    price,
+		}
+	}
+	return quotes, nil
 }
