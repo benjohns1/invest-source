@@ -6,22 +6,19 @@ import (
 	"os"
 	"strings"
 	"time"
-
-	"github.com/benjohns1/invest-source/utils/filesystem"
 )
-
-// Now function for retrieving the current timestamp. Override this for unit tests.
-var Now = time.Now
 
 // Cache file implementation.
 type Cache struct {
-	CurrentFilename func() string
+	Filename func(int) string
 }
+
+var oldestCacheDate = time.Date(2020, time.January, 1, 0, 0, 0, 0, time.UTC)
 
 // NewDailyCache instantiates a daily cache.
 func NewDailyCache(dir string) (Cache, error) {
 	c := Cache{
-		CurrentFilename: CurrentFilenameGen(dir),
+		Filename: FilenameGen(dir),
 	}
 	if err := c.Validate(); err != nil {
 		return Cache{}, err
@@ -31,8 +28,8 @@ func NewDailyCache(dir string) (Cache, error) {
 
 // Validate returns an error if the cache was not correctly instantiated.
 func (c Cache) Validate() error {
-	if c.CurrentFilename == nil {
-		return fmt.Errorf("cache CurrentFilename must be set")
+	if c.Filename == nil {
+		return fmt.Errorf("cache Filename must be set")
 	}
 
 	return nil
@@ -40,7 +37,11 @@ func (c Cache) Validate() error {
 
 // ReadCurrent retrieves the current day's cache file data, or nil if it doesn't exist.
 func (c Cache) ReadCurrent() ([]byte, error) {
-	f, err := os.Open(c.CurrentFilename())
+	return c.read(0)
+}
+
+func (c Cache) read(dayOffset int) ([]byte, error) {
+	f, err := OpenForReading(c.Filename(dayOffset))
 	if err != nil {
 		if os.IsNotExist(err) {
 			return nil, nil
@@ -51,9 +52,33 @@ func (c Cache) ReadCurrent() ([]byte, error) {
 	return ioutil.ReadAll(f)
 }
 
+// ReadSince retrieves all caches since the given time.
+func (c Cache) ReadSince(since time.Time) ([][]byte, error) {
+	if since.Before(oldestCacheDate) {
+		since = oldestCacheDate
+	}
+	curr := Now().UTC()
+	var set [][]byte
+	for i := 0; ; i-- {
+		curr = curr.AddDate(0, 0, -1)
+		if curr.Before(since) {
+			break
+		}
+		data, err := c.read(i)
+		if err != nil {
+			return nil, err
+		}
+		if data == nil {
+			continue
+		}
+		set = append(set, data)
+	}
+	return set, nil
+}
+
 // Write writes the data to a daily cache.
 func (c Cache) WriteCurrent(data []byte) error {
-	f, err := os.Create(c.CurrentFilename())
+	f, err := CreateFile(c.Filename(0))
 	if err != nil {
 		return err
 	}
@@ -65,15 +90,19 @@ func (c Cache) WriteCurrent(data []byte) error {
 	return nil
 }
 
-// CurrentFilenameGen returns a function to generate the current cache file name.
-func CurrentFilenameGen(dir string) func() string {
+// FilenameGen returns a function to generate cache file names.
+func FilenameGen(dir string) func(int) string {
 	dirPath := strings.ReplaceAll(dir, "\\", "/")
 	if dirPath != "" && !strings.HasSuffix(dirPath, "/") {
 		dirPath = dirPath + "/"
 	}
-	_ = filesystem.Mkdir(dirPath)
+	_ = Mkdir(dirPath)
 
-	return func() string {
-		return fmt.Sprintf("%s%s.json", dirPath, Now().UTC().Format("2006-01-02"))
+	return func(dayOffset int) string {
+		date := Now().UTC()
+		if dayOffset != 0 {
+			date = date.AddDate(0, 0, dayOffset)
+		}
+		return fmt.Sprintf("%s%s.json", dirPath, date.Format("2006-01-02"))
 	}
 }

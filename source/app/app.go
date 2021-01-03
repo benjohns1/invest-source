@@ -23,6 +23,7 @@ type Quote struct {
 
 // Cache caches API data when multiple use-cases are run for the same dataset without having to re-query the source API.
 type Cache interface {
+	ReadSince(time.Time) ([][]byte, error)
 	ReadCurrent() ([]byte, error)
 	WriteCurrent(data []byte) error
 }
@@ -41,5 +42,6 @@ type Log interface {
 
 // Output implements an output writer.
 type Output interface {
-	Write([]Quote) ([]string, error)
+	LastRun() time.Time
+	WriteSet([][]Quote) (map[int][]string, error)
 }

@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/benjohns1/invest-source/app"
 	"github.com/stretchr/testify/assert"
@@ -22,24 +23,28 @@ func TestApp_OutputDailyQuotes(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "should fail if cache ReadCurrent() returns an error",
+			name: "should fail if cache ReadSince() returns an error",
 			app: app.App{
 				Cache: func() app.Cache {
 					c := mockCache{}
-					c.On("ReadCurrent").Return(nil, fmt.Errorf("read cache error"))
+					c.On("ReadSince", time.Time{}).Return(nil, fmt.Errorf("read cache error"))
 					return &c
 				}(),
 				Provider: &mockProvider{},
-				Output:   &mockOutput{},
+				Output: func() app.Output {
+					o := mockOutput{}
+					o.On("LastRun").Return(time.Time{})
+					return &o
+				}(),
 			},
 			wantErr: true,
 		},
 		{
-			name: "should succeed with empty data",
+			name: "should succeed with one cache entry of empty data",
 			app: app.App{
 				Cache: func() app.Cache {
 					c := mockCache{}
-					c.On("ReadCurrent").Return([]byte("{}"), nil)
+					c.On("ReadSince", time.Time{}).Return([][]byte{[]byte("{}")}, nil)
 					return &c
 				}(),
 				Provider: func() app.Provider {
@@ -49,7 +54,8 @@ func TestApp_OutputDailyQuotes(t *testing.T) {
 				}(),
 				Output: func() app.Output {
 					o := mockOutput{}
-					o.On("Write", []app.Quote{}).Return(nil, nil)
+					o.On("LastRun").Return(time.Time{})
+					o.On("WriteSet", [][]app.Quote{{}}).Return(nil, nil)
 					return &o
 				}(),
 			},
@@ -60,7 +66,7 @@ func TestApp_OutputDailyQuotes(t *testing.T) {
 			app: app.App{
 				Cache: func() app.Cache {
 					c := mockCache{}
-					c.On("ReadCurrent").Return([]byte("{}"), nil)
+					c.On("ReadSince", time.Time{}).Return([][]byte{[]byte("{}")}, nil)
 					return &c
 				}(),
 				Provider: func() app.Provider {
@@ -68,16 +74,20 @@ func TestApp_OutputDailyQuotes(t *testing.T) {
 					p.On("ParseQuotes", []byte("{}")).Return(nil, fmt.Errorf("provider parsing error"))
 					return &p
 				}(),
-				Output: &mockOutput{},
+				Output: func() app.Output {
+					o := mockOutput{}
+					o.On("LastRun").Return(time.Time{})
+					return &o
+				}(),
 			},
 			wantErr: true,
 		},
 		{
-			name: "should fail if output Write() returns an error",
+			name: "should fail if output WriteSet() returns an error",
 			app: app.App{
 				Cache: func() app.Cache {
 					c := mockCache{}
-					c.On("ReadCurrent").Return([]byte("{}"), nil)
+					c.On("ReadSince", time.Time{}).Return([][]byte{[]byte("{}")}, nil)
 					return &c
 				}(),
 				Provider: func() app.Provider {
@@ -87,7 +97,8 @@ func TestApp_OutputDailyQuotes(t *testing.T) {
 				}(),
 				Output: func() app.Output {
 					o := mockOutput{}
-					o.On("Write", []app.Quote{}).Return(nil, fmt.Errorf("output writer error"))
+					o.On("LastRun").Return(time.Time{})
+					o.On("WriteSet", [][]app.Quote{{}}).Return(nil, fmt.Errorf("output writer error"))
 					return &o
 				}(),
 			},
