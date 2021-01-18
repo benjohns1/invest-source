@@ -23,7 +23,7 @@ func TestApp_CacheDailySourceData(t *testing.T) {
 	}{
 		{
 			name: "should fail if cache ReadCurrent() returns an error",
-			app: app.App{
+			app: app.App{Config: app.Config{
 				Cache: func() app.Cache {
 					c := mockCache{}
 					c.On("ReadCurrent").Return(nil, fmt.Errorf("read cache error"))
@@ -31,12 +31,12 @@ func TestApp_CacheDailySourceData(t *testing.T) {
 				}(),
 				Provider: &mockProvider{},
 				Output:   &mockOutput{},
-			},
+			}},
 			wantErr: true,
 		},
 		{
 			name: "should fail if provider QueryLatest() returns an error",
-			app: app.App{
+			app: app.App{Config: app.Config{
 				Cache: func() app.Cache {
 					c := mockCache{}
 					c.On("ReadCurrent").Return(nil, nil)
@@ -48,12 +48,12 @@ func TestApp_CacheDailySourceData(t *testing.T) {
 					return &p
 				}(),
 				Output: &mockOutput{},
-			},
+			}},
 			wantErr: true,
 		},
 		{
 			name: "should fail if cache WriteCurrent() returns an error",
-			app: app.App{
+			app: app.App{Config: app.Config{
 				Cache: func() app.Cache {
 					c := mockCache{}
 					c.On("ReadCurrent").Return(nil, nil)
@@ -66,12 +66,12 @@ func TestApp_CacheDailySourceData(t *testing.T) {
 					return &p
 				}(),
 				Output: &mockOutput{},
-			},
+			}},
 			wantErr: true,
 		},
 		{
 			name: "should succeed if cache ReadCurrent() returns data",
-			app: app.App{
+			app: app.App{Config: app.Config{
 				Cache: func() app.Cache {
 					c := mockCache{}
 					c.On("ReadCurrent").Return([]byte("{}"), nil)
@@ -79,12 +79,12 @@ func TestApp_CacheDailySourceData(t *testing.T) {
 				}(),
 				Provider: &mockProvider{},
 				Output:   &mockOutput{},
-			},
+			}},
 			wantErr: false,
 		},
 		{
 			name: "should succeed if provider QueryLatest() returns data and cache WriteCurrent() succeeds",
-			app: app.App{
+			app: app.App{Config: app.Config{
 				Cache: func() app.Cache {
 					c := mockCache{}
 					c.On("ReadCurrent").Return(nil, nil)
@@ -97,7 +97,7 @@ func TestApp_CacheDailySourceData(t *testing.T) {
 					return &p
 				}(),
 				Output: &mockOutput{},
-			},
+			}},
 			wantErr: false,
 		},
 	}
@@ -106,22 +106,22 @@ func TestApp_CacheDailySourceData(t *testing.T) {
 			if tt.args.ctx == nil {
 				tt.args.ctx = context.Background()
 			}
-			if tt.app.Log == nil {
-				tt.app.Log = log.New(os.Stdout, "test: ", log.LstdFlags)
+			if tt.app.Config.Log == nil {
+				tt.app.Config.Log = log.New(os.Stdout, "test: ", log.LstdFlags)
 			}
-			err := tt.app.CacheDailySourceData(tt.args.ctx)
+			err := app.CacheDailySourceData(tt.args.ctx, tt.app)
 			if tt.wantErr {
 				assert.Error(t, err)
 			} else {
 				assert.NoError(t, err)
 			}
-			if c, ok := tt.app.Cache.(*mockCache); ok {
+			if c, ok := tt.app.Config.Cache.(*mockCache); ok {
 				c.AssertExpectations(t)
 			}
-			if p, ok := tt.app.Provider.(*mockProvider); ok {
+			if p, ok := tt.app.Config.Provider.(*mockProvider); ok {
 				p.AssertExpectations(t)
 			}
-			if o, ok := tt.app.Output.(*mockOutput); ok {
+			if o, ok := tt.app.Config.Output.(*mockOutput); ok {
 				o.AssertExpectations(t)
 			}
 		})

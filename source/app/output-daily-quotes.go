@@ -12,8 +12,16 @@ var DateFormat = "2006-01-02"
 // Now retrieves the current time.
 var Now = time.Now
 
+// OutputDailyQuotesDeps application dependencies for OutputDailyQuotes use-case.
+type OutputDailyQuotesDeps interface {
+	Cache() Cache
+	Provider() Provider
+	Output() Output
+	Log() Log
+}
+
 // OutputDailyQuotes outputs the daily quotes since the last output, using cached source data.
-func (a App) OutputDailyQuotes(_ context.Context, since string, symbols []string) error {
+func OutputDailyQuotes(_ context.Context, a OutputDailyQuotesDeps, since string, symbols []string) error {
 	var sinceDate time.Time
 	if since != "" {
 		var err error
@@ -23,27 +31,27 @@ func (a App) OutputDailyQuotes(_ context.Context, since string, symbols []string
 		sinceDate = sinceDate.UTC()
 	}
 
-	set, err := a.Cache.ReadSince(sinceDate)
+	set, err := a.Cache().ReadSince(sinceDate)
 	if err != nil {
 		return err
 	}
 
-	a.Log.Printf("retrieved %d entries of cached data since %s", len(set), sinceDate.Format(DateFormat))
+	a.Log().Printf("retrieved %d entries of cached data since %s", len(set), sinceDate.Format(DateFormat))
 
 	quotes := make([][]Quote, len(set))
 	for i, data := range set {
 		var err error
-		if quotes[i], err = a.Provider.ParseQuotes(data, symbols...); err != nil {
+		if quotes[i], err = a.Provider().ParseQuotes(data, symbols...); err != nil {
 			return err
 		}
 	}
 
-	a.Log.Printf("writing output")
+	a.Log().Printf("writing output")
 
 	filename := fmt.Sprintf("%s_to_%s.csv", sinceDate.Format(DateFormat), Now().UTC().Format(DateFormat))
-	missing, err := a.Output.WriteSet(filename, quotes, symbols...)
+	missing, err := a.Output().WriteSet(filename, quotes, symbols...)
 	if len(missing) > 0 {
-		a.Log.Printf("missing symbols from output: %v", missing)
+		a.Log().Printf("missing symbols from output: %v", missing)
 	}
 
 	return err

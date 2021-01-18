@@ -1,0 +1,23 @@
+version: "3.5"
+
+services:
+  localstack:
+    container_name: invest-source_aws-local
+    hostname: localstack
+    image: localstack/localstack:0.12.5
+    environment:
+      - HOSTNAME=localstack
+      - SERVICES=lambda,s3,iam,cloudwatch,events
+      - DEFAULT_REGION=us-west-2
+      - DEBUG=1
+      - LAMBDA_EXECUTOR=docker
+      - LAMBDA_DOCKER_NETWORK=invest-source_aws-local
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    ports:
+      - 4566:4566
+      - 4571:4571
+
+networks:
+  default:
+    name: invest-source_aws-local

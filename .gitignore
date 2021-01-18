@@ -1,10 +1,17 @@
-.DS_Store
+# Project
 node_modules
 *.exe
 bin
 data
 coverage
 .secrets.yaml
+artifacts
+.terraform
+*.tfplan
+*.tfstate*
+
+# OS
+.DS_Store
 
 # Editor directories and files
 .idea

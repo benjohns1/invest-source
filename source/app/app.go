@@ -6,13 +6,30 @@ import (
 	"github.com/shopspring/decimal"
 )
 
-// App provides methods for all application use-cases.
+// App provides dependencies for all application use-cases.
 type App struct {
+	Config
+}
+
+// Config ...
+type Config struct {
 	Cache    Cache
 	Provider Provider
 	Output   Output
 	Log      Log
 }
+
+// Cache ...
+func (a App) Cache() Cache { return a.Config.Cache }
+
+// Provider ...
+func (a App) Provider() Provider { return a.Config.Provider }
+
+// Output ...
+func (a App) Output() Output { return a.Config.Output }
+
+// Log ...
+func (a App) Log() Log { return a.Config.Log }
 
 // Quote contains a price quote for a single symbol at a point in time.
 type Quote struct {

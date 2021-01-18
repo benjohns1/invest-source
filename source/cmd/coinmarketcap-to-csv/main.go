@@ -78,20 +78,23 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	l := log.New(os.Stdout, "app: ", log.LstdFlags)
 	a := app.App{
-		Provider: p,
-		Cache:    c,
-		Output:   o,
-		Log:      log.New(os.Stdout, "app: ", log.LstdFlags),
+		Config: app.Config{
+			Provider: p,
+			Cache:    c,
+			Output:   o,
+			Log:      l,
+		},
 	}
 
 	log.Println("caching daily source data")
-	if err := a.CacheDailySourceData(ctx); err != nil {
+	if err := app.CacheDailySourceData(ctx, a); err != nil {
 		log.Fatal(err)
 	}
 
 	log.Println("outputting daily quotes")
-	if err := a.OutputDailyQuotes(ctx, cfg.Since, cfg.OutputSymbols); err != nil {
+	if err := app.OutputDailyQuotes(ctx, a, cfg.Since, cfg.OutputSymbols); err != nil {
 		log.Fatal(err)
 	}
 
